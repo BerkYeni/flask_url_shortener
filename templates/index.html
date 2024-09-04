@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>URL Shortener</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md mb-8">
@@ -27,25 +28,57 @@
         {% endif %}
     </div>
 
-    {% if all_urls %}
-        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-            <h2 class="text-xl font-bold mb-4">Recent Shortened URLs</h2>
-            <ul class="space-y-2">
-                {% for url in all_urls %}
-                    <li class="border-b pb-2">
-                        <a href="{{ request.host_url }}{{ url.short_url }}" target="_blank" class="text-blue-500 hover:underline">{{ request.host_url }}{{ url.short_url }}</a>
-                        <p class="text-sm text-gray-600">Original: {{ url.original_url[:50] }}{% if url.original_url|length > 50 %}...{% endif %}</p>
-                        <p class="text-xs text-gray-400">Clicks: {{ url.clicks }} | Created: {{ url.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
-                    </li>
-                {% endfor %}
-            </ul>
+    <div id="url-list">
+        {% for url in urls %}
+        <div class="url-item">
+            <p>Short URL: <a href="{{ url.short_url }}" target="_blank">{{ request.host_url }}{{ url.short_url }}</a></p>
+            <p>Original URL: {{ url.original_url }}</p>
+            <p>Clicks: {{ url.clicks }}</p>
+            <p>Created at: {{ url.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
         </div>
-    {% endif %}
+        {% endfor %}
+    </div>
+
+    <div id="loading" style="display: none;">Loading...</div>
 
     <script>
-    if (window.history.replaceState) {
-        window.history.replaceState(null, null, window.location.href);
-    }
+        let currentPage = 1;
+        let loading = false;
+
+        function loadMoreUrls() {
+            if (loading) return;
+            loading = true;
+            $('#loading').show();
+
+            $.get(`/load_more/${currentPage + 1}`, function(data) {
+                currentPage++;
+                data.urls.forEach(url => {
+                    $('#url-list').append(`
+                        <div class="url-item">
+                            <p>Short URL: <a href="${url.short_url}" target="_blank">${window.location.origin}/${url.short_url}</a></p>
+                            <p>Original URL: ${url.original_url}</p>
+                            <p>Clicks: ${url.clicks}</p>
+                            <p>Created at: ${url.created_at}</p>
+                        </div>
+                    `);
+                });
+
+                loading = false;
+                $('#loading').hide();
+
+                if (!data.has_next) {
+                    $(window).off('scroll', scrollHandler);
+                }
+            });
+        }
+
+        function scrollHandler() {
+            if ($(window).scrollTop() + $(window).height() > $(document).height() - 100) {
+                loadMoreUrls();
+            }
+        }
+
+        $(window).on('scroll', scrollHandler);
     </script>
 </body>
 </html>

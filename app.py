@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, request, redirect, abort
+from flask import Flask, render_template, request, redirect, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import string
@@ -27,8 +27,6 @@ def generate_short_url():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    all_urls = ShortURL.query.order_by(ShortURL.created_at.desc()).all()
-    
     if request.method == 'POST':
         try:
             original_url = request.form['url']
@@ -53,7 +51,11 @@ def index():
             app.logger.error(f"An error occurred: {str(e)}")
             return render_template('index.html', error='An internal error occurred. Please try again.', all_urls=all_urls)
     
-    return render_template('index.html', all_urls=all_urls)
+    # Load initial URLs
+    page = 1
+    per_page = 10
+    pagination = ShortURL.query.order_by(ShortURL.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template('index.html', urls=pagination.items)
 
 @app.route('/<short_url>')
 def redirect_to_url(short_url):
@@ -67,6 +69,18 @@ def redirect_to_url(short_url):
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
+
+@app.route('/load_more/<int:page>')
+def load_more(page):
+    per_page = 10
+    pagination = ShortURL.query.order_by(ShortURL.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    urls = [{
+        'short_url': url.short_url,
+        'original_url': url.original_url,
+        'clicks': url.clicks,
+        'created_at': url.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    } for url in pagination.items]
+    return jsonify(urls=urls, has_next=pagination.has_next)
 
 def init_db():
     with app.app_context():
