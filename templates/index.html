@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
     <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md mb-8">
         <h1 class="text-2xl font-bold mb-4 text-center">URL Shortener</h1>
         <form method="POST" class="space-y-4">
@@ -28,18 +28,18 @@
         {% endif %}
     </div>
 
-    <div id="url-list">
+    <div id="url-list" class="w-full max-w-2xl mt-8 space-y-4">
         {% for url in urls %}
-        <div class="url-item">
-            <p>Short URL: <a href="{{ url.short_url }}" target="_blank">{{ request.host_url }}{{ url.short_url }}</a></p>
-            <p>Original URL: {{ url.original_url }}</p>
-            <p>Clicks: {{ url.clicks }}</p>
-            <p>Created at: {{ url.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <div class="url-item bg-white p-4 rounded-lg shadow-md">
+            <p class="font-semibold">Short URL: <a href="{{ url.short_url }}" target="_blank" class="text-blue-500 hover:underline break-all">{{ request.host_url }}{{ url.short_url }}</a></p>
+            <p class="mt-2">Original URL: <span class="text-gray-600 break-all">{{ url.original_url }}</span></p>
+            <p class="mt-1">Clicks: <span class="font-medium">{{ url.clicks }}</span></p>
+            <p class="mt-1 text-sm text-gray-500">Created at: {{ url.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
         </div>
         {% endfor %}
     </div>
 
-    <div id="loading" style="display: none;">Loading...</div>
+    <div id="loading" class="mt-4 text-gray-600" style="display: none;">Loading...</div>
 
     <script>
         let currentPage = 1;
@@ -54,11 +54,11 @@
                 currentPage++;
                 data.urls.forEach(url => {
                     $('#url-list').append(`
-                        <div class="url-item">
-                            <p>Short URL: <a href="${url.short_url}" target="_blank">${window.location.origin}/${url.short_url}</a></p>
-                            <p>Original URL: ${url.original_url}</p>
-                            <p>Clicks: ${url.clicks}</p>
-                            <p>Created at: ${url.created_at}</p>
+                        <div class="url-item bg-white p-4 rounded-lg shadow-md">
+                            <p class="font-semibold">Short URL: <a href="${url.short_url}" target="_blank" class="text-blue-500 hover:underline break-all">${window.location.origin}/${url.short_url}</a></p>
+                            <p class="mt-2">Original URL: <span class="text-gray-600 break-all">${url.original_url}</span></p>
+                            <p class="mt-1">Clicks: <span class="font-medium">${url.clicks}</span></p>
+                            <p class="mt-1 text-sm text-gray-500">Created at: ${url.created_at}</p>
                         </div>
                     `);
                 });

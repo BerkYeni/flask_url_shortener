@@ -27,15 +27,19 @@ def generate_short_url():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    pagination = ShortURL.query.order_by(ShortURL.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    
     if request.method == 'POST':
         try:
             original_url = request.form['url']
             if not original_url:
-                return render_template('index.html', error='Please enter a URL', all_urls=all_urls)
+                return render_template('index.html', error='Please enter a URL', urls=pagination.items)
             
             existing_url = ShortURL.query.filter_by(original_url=original_url).first()
             if existing_url:
-                return render_template('index.html', short_url=request.host_url + existing_url.short_url, all_urls=all_urls)
+                return render_template('index.html', short_url=request.host_url + existing_url.short_url, urls=pagination.items)
             
             short_url = generate_short_url()
             while ShortURL.query.filter_by(short_url=short_url).first():
@@ -45,16 +49,13 @@ def index():
             db.session.add(new_url)
             db.session.commit()
             
-            all_urls = ShortURL.query.order_by(ShortURL.created_at.desc()).all()  # Refresh the list
-            return render_template('index.html', short_url=request.host_url + short_url, all_urls=all_urls)
+            # Refresh the pagination after adding a new URL
+            pagination = ShortURL.query.order_by(ShortURL.created_at.desc()).paginate(page=1, per_page=per_page, error_out=False)
+            return render_template('index.html', short_url=request.host_url + short_url, urls=pagination.items)
         except Exception as e:
             app.logger.error(f"An error occurred: {str(e)}")
-            return render_template('index.html', error='An internal error occurred. Please try again.', all_urls=all_urls)
+            return render_template('index.html', error='An internal error occurred. Please try again.', urls=pagination.items)
     
-    # Load initial URLs
-    page = 1
-    per_page = 10
-    pagination = ShortURL.query.order_by(ShortURL.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     return render_template('index.html', urls=pagination.items)
 
 @app.route('/<short_url>')
@@ -89,4 +90,4 @@ def init_db():
 
 if __name__ == '__main__':
     init_db()  # Initialize the database
-    app.run(debug=False)
+    app.run(debug=True)  # Set debug=True for development
